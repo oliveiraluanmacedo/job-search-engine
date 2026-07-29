@@ -205,6 +205,80 @@
         -560,
         -192
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Placeholder for the Google Sheets duplicate lookup.\n * Replace this node with a Google Sheets lookup immediately after\n * Continue Above Threshold's true output. Search the tracking table's\n * job_id column using item.json.job_id and set _duplicate_lookup_found\n * to true when a matching row exists.\n */\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    _duplicate_lookup_found: false,\n  },\n}));"
+      },
+      "id": "c7a8fd77-153b-4ddd-8e57-8457f37390d8",
+      "name": "Google Sheets Lookup (Placeholder)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "fcd47bca-7830-416a-9c66-45cbf3919f26",
+              "leftValue": "={{ $json._duplicate_lookup_found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8c0f75ba-6ad2-4666-920c-495b8fc48a73",
+      "name": "Duplicate Job?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map((item) => {\n  const { _duplicate_lookup_found, ...job } = item.json;\n  return {\n    json: {\n      ...job,\n      duplicated: true,\n      rejection_reason: 'Duplicate Job',\n    },\n  };\n});"
+      },
+      "id": "1b828902-6ebe-45e0-b4a7-1f1b747967fc",
+      "name": "Mark Duplicate Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map((item) => {\n  const { _duplicate_lookup_found, ...job } = item.json;\n  return {\n    json: {\n      ...job,\n      duplicated: false,\n    },\n  };\n});"
+      },
+      "id": "65b6e941-56fe-45b4-99b7-34dbe173a8dc",
+      "name": "Mark Unique Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -80
+      ]
     }
   ],
   "connections": {
@@ -290,6 +364,46 @@
         [
           {
             "node": "Continue Above Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue Above Threshold": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Lookup (Placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Lookup (Placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Job?": {
+      "main": [
+        [
+          {
+            "node": "Mark Duplicate Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Unique Job",
             "type": "main",
             "index": 0
           }
