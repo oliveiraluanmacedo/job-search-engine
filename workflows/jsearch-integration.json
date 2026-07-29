@@ -1,0 +1,109 @@
+{
+  "name": "Phase 2 - JSearch Integration",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1a9a0d30-7a2a-4ad9-a59d-26ed4e54dff1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://jsearch.p.rapidapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $env.JSEARCH_QUERY }}"
+            },
+            {
+              "name": "page",
+              "value": "={{ $env.JSEARCH_PAGE || '1' }}"
+            },
+            {
+              "name": "num_pages",
+              "value": "={{ $env.JSEARCH_NUM_PAGES || '1' }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": "={{ $env.JSEARCH_API_KEY }}"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "jsearch.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c55521c5-3cbf-416f-a7d6-b151b2da2f2f",
+      "name": "Search JSearch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Validates the raw JSearch response before later phases transform it.\n * This Phase 2 node intentionally leaves job fields unnormalized.\n */\nfunction validateJSearchResponse(response) {\n  if (!response || typeof response !== 'object' || Array.isArray(response)) {\n    throw new Error('JSearch returned an invalid response body.');\n  }\n\n  if (response.status !== 'OK') {\n    throw new Error(`JSearch request failed with status: ${String(response.status)}`);\n  }\n\n  if (!Array.isArray(response.data)) {\n    throw new Error('JSearch response is missing the expected data array.');\n  }\n\n  return {\n    ...response,\n    validation: {\n      source: 'JSearch',\n      job_count: response.data.length,\n      validated_at: new Date().toISOString(),\n    },\n  };\n}\n\nreturn $input.all().map((item) => ({\n  json: validateJSearchResponse(item.json),\n}));"
+      },
+      "id": "b58271a4-7e1e-4fa1-917b-21cde79da8e7",
+      "name": "Validate JSearch Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search JSearch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search JSearch": {
+      "main": [
+        [
+          {
+            "node": "Validate JSearch Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "81278a5b-aa7c-4f0b-a3de-df8f045c1d79",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
