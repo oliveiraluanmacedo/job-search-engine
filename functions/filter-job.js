@@ -1,43 +1,53 @@
 /**
  * Runs the hard-filter rule pipeline for one canonical job.
  *
- * Rule logic is intentionally not implemented in Story 4.1. Each rule passes
- * by default, so this function currently preserves every normalized job.
+ * The pipeline stops at the first failed rule.
  *
  * @param {object} job - Canonical job object.
- * @returns {{approved: boolean, rejection_reason: null, triggered_rules: string[]}} Filter result.
+ * @returns {{approved: boolean, rejection_reason: string|null, triggered_rules: string[]}} Filter result.
  */
 function filterJob(job) {
-  const results = [
-    checkSeniority(job),
-    checkEngineering(job),
-    checkDomain(job),
-    checkExperience(job),
-    checkDescriptionQuality(job),
-    checkRecruiter(job),
+  const rules = [
+    checkSeniority,
+    checkEngineering,
+    checkDomain,
+    checkExperience,
+    checkDescriptionQuality,
+    checkRecruiter,
   ];
 
-  const rejected = results.find((result) => !result.passed);
-
-  return rejected
-    ? {
-      approved: false,
-      rejection_reason: rejected.reason,
-      triggered_rules: [],
+  for (const rule of rules) {
+    const result = rule(job);
+    if (!result.passed) {
+      return {
+        approved: false,
+        rejection_reason: result.reason,
+        triggered_rules: [result.reason],
+      };
     }
-    : {
-      approved: true,
-      rejection_reason: null,
-      triggered_rules: [],
-    };
+  }
+
+  return {
+    approved: true,
+    rejection_reason: null,
+    triggered_rules: [],
+  };
 }
 
 /**
- * Placeholder for the PRD seniority rule.
+ * Rejects roles above the candidate's target seniority.
  *
- * @returns {{passed: boolean, reason: null}} Passing placeholder result.
+ * @param {object} job - Canonical job object.
+ * @returns {{passed: boolean, reason: string|null}} Seniority rule result.
  */
-function checkSeniority() {
+function checkSeniority(job) {
+  const title = typeof job?.title === 'string' ? job.title : '';
+  const rejectedSeniority = /\b(Senior|Lead|Principal|Head|Director|VP|Staff)\b/i;
+
+  if (rejectedSeniority.test(title)) {
+    return { passed: false, reason: 'Seniority' };
+  }
+
   return { passed: true, reason: null };
 }
 
