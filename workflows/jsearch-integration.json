@@ -279,6 +279,20 @@
         160,
         -80
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Single provider-independent boundary for future AI analysis.\n * Replace the placeholder body of evaluateJob with a provider call later.\n */\nfunction evaluateJob(job) {\n  return {\n    ai_score: 0,\n    decision: 'Pending',\n    reasoning: 'AI evaluation not implemented.',\n    strengths: [],\n    weaknesses: [],\n    missing_skills: [],\n  };\n}\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    ...evaluateJob(item.json),\n  },\n}));"
+      },
+      "id": "6b7dc0b8-ebf4-4d45-8bb6-604c1b5da4e7",
+      "name": "AI Evaluation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -80
+      ]
     }
   ],
   "connections": {
@@ -404,6 +418,17 @@
         [
           {
             "node": "Mark Unique Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Unique Job": {
+      "main": [
+        [
+          {
+            "node": "AI Evaluation",
             "type": "main",
             "index": 0
           }
