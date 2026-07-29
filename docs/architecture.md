@@ -401,7 +401,7 @@ Required variables
 ```
 OPENAI_API_KEY
 
-JSEARCH_API_KEY
+RapidAPI - JSearch (n8n HTTP Header Auth credential)
 
 GOOGLE_SHEETS_ID
 

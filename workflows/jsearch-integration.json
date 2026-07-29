@@ -1,45 +1,87 @@
 {
-  "name": "Phase 2 - JSearch Integration",
   "nodes": [
     {
       "parameters": {},
-      "id": "1a9a0d30-7a2a-4ad9-a59d-26ed4e54dff1",
-      "name": "Manual Trigger",
+      "id": "37924d87-08e2-4c80-a438-744846192ff1",
+      "name": "When clicking â€˜Execute workflowâ€™",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        320,
-        300
+        -2416,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c710f7e7-d640-467f-9afc-0b22e6d4ccac",
+              "name": "query",
+              "value": "Product Manager",
+              "type": "string"
+            },
+            {
+              "id": "f139b0bc-a8bd-45ce-9475-c3a87e71f5f8",
+              "name": "location",
+              "value": "Ireland",
+              "type": "string"
+            },
+            {
+              "id": "68a45882-1479-4e0e-9e1f-6ab1fb5875b9",
+              "name": "page",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "e0f95245-0620-4518-b6aa-a6938b6e49b2",
+              "name": "num_pages",
+              "value": "1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7967d0ed-ef21-4bc4-9b3d-7f88acdb4e5a",
+      "name": "Set Search Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2208,
+        -192
       ]
     },
     {
       "parameters": {
         "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "url": "https://jsearch.p.rapidapi.com/search",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "query",
-              "value": "={{ $env.JSEARCH_QUERY }}"
+              "value": "={{ $json.query }}"
             },
             {
               "name": "page",
-              "value": "={{ $env.JSEARCH_PAGE || '1' }}"
+              "value": "={{ $json.page }}"
             },
             {
               "name": "num_pages",
-              "value": "={{ $env.JSEARCH_NUM_PAGES || '1' }}"
+              "value": "={{ $json.num_pages }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json.location }}"
             }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-RapidAPI-Key",
-              "value": "={{ $env.JSEARCH_API_KEY }}"
-            },
             {
               "name": "X-RapidAPI-Host",
               "value": "jsearch.p.rapidapi.com"
@@ -48,44 +90,73 @@
         },
         "options": {}
       },
-      "id": "c55521c5-3cbf-416f-a7d6-b151b2da2f2f",
-      "name": "Search JSearch",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "RapidAPI - JSearch"
+        }
+      },
+      "id": "41f3628e-68fe-4940-8b77-415fbaaced82",
+      "name": "JSearch IE",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.4,
       "position": [
-        560,
-        300
+        -1968,
+        -192
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "/**\n * Validates the raw JSearch response before later phases transform it.\n * This Phase 2 node intentionally leaves job fields unnormalized.\n */\nfunction validateJSearchResponse(response) {\n  if (!response || typeof response !== 'object' || Array.isArray(response)) {\n    throw new Error('JSearch returned an invalid response body.');\n  }\n\n  if (response.status !== 'OK') {\n    throw new Error(`JSearch request failed with status: ${String(response.status)}`);\n  }\n\n  if (!Array.isArray(response.data)) {\n    throw new Error('JSearch response is missing the expected data array.');\n  }\n\n  return {\n    ...response,\n    validation: {\n      source: 'JSearch',\n      job_count: response.data.length,\n      validated_at: new Date().toISOString(),\n    },\n  };\n}\n\nreturn $input.all().map((item) => ({\n  json: validateJSearchResponse(item.json),\n}));"
+        "jsCode": "/**\n * Validates the raw JSearch response before it is normalized.\n */\nfunction validateJSearchResponse(response) {\n  if (!response || typeof response !== 'object' || Array.isArray(response)) {\n    throw new Error('JSearch returned an invalid response body.');\n  }\n\n  if (response.status !== 'OK') {\n    throw new Error(`JSearch request failed with status: ${String(response.status)}`);\n  }\n\n  if (!Array.isArray(response.data)) {\n    throw new Error('JSearch response is missing the expected data array.');\n  }\n\n  return {\n    ...response,\n    validation: {\n      source: 'JSearch',\n      job_count: response.data.length,\n      validated_at: new Date().toISOString(),\n    },\n  };\n}\n\nreturn $input.all().map((item) => ({\n  json: validateJSearchResponse(item.json),\n}));"
       },
-      "id": "b58271a4-7e1e-4fa1-917b-21cde79da8e7",
+      "id": "edc0d9ef-a019-4510-8c2d-b9539c2e6f76",
       "name": "Validate JSearch Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        820,
-        300
+        -1728,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Converts every validated JSearch record into a canonical job object.\n * This node only normalizes data; it does not filter, score, or persist jobs.\n */\nfunction normalizeText(value) {\n  if (typeof value !== 'string') return null;\n  const normalized = value.replace(/\\s+/g, ' ').trim();\n  return normalized || null;\n}\n\nfunction normalizeMultilineText(value) {\n  if (typeof value !== 'string') return null;\n  const normalized = value.replace(/\\r\\n?/g, '\\n').split('\\n')\n    .map((line) => line.replace(/[ \\t]+/g, ' ').trim()).join('\\n').trim();\n  return normalized || null;\n}\n\nfunction toArray(value) {\n  if (value === null || value === undefined) return [];\n  return Array.isArray(value) ? value : [value];\n}\n\nfunction uniqueStrings(values) {\n  const seen = new Set();\n  return toArray(values).flatMap(toArray).map(normalizeText).filter((value) => {\n    if (!value || seen.has(value.toLowerCase())) return false;\n    seen.add(value.toLowerCase());\n    return true;\n  });\n}\n\nfunction buildLocation(job, remote) {\n  const directLocation = normalizeText(job.job_location);\n  if (directLocation) return directLocation;\n  const location = uniqueStrings([job.job_city, job.job_state, job.job_country]).join(', ');\n  return location || (remote ? 'Remote' : null);\n}\n\nfunction normalizeEmploymentType(value) {\n  const type = normalizeText(value)?.toUpperCase().replace(/[\\s_-]/g, '');\n  const types = { FULLTIME: 'Full-time', PARTTIME: 'Part-time', CONTRACTOR: 'Contract', CONTRACT: 'Contract', PERMANENT: 'Full-time', TEMPORARY: 'Temporary', INTERN: 'Internship', INTERNSHIP: 'Internship' };\n  return types[type] || 'Unknown';\n}\n\nfunction firstNumber(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined || value === '') continue;\n    const number = typeof value === 'number' ? value : Number(value);\n    if (Number.isFinite(number)) return number;\n  }\n  return null;\n}\n\nfunction normalizePostedAt(job) {\n  const value = job.job_posted_at_datetime_utc ?? job.job_posted_at_timestamp ?? job.job_posted_at;\n  if (value === null || value === undefined || value === '') return null;\n  const numericValue = Number(value);\n  const date = typeof value === 'number' || /^\\d+$/.test(String(value)) ? new Date(numericValue > 1e12 ? numericValue : numericValue * 1000) : new Date(value);\n  return Number.isNaN(date.getTime()) ? null : date.toISOString();\n}\n\nfunction assertMandatoryFields(fields) {\n  const missing = Object.entries(fields).filter(([, value]) => !value).map(([name]) => name);\n  if (missing.length) throw new Error(`JSearch job is missing mandatory field(s): ${missing.join(', ')}.`);\n}\n\nfunction normalizeJSearchJob(job) {\n  const title = normalizeText(job.job_title);\n  const company = normalizeText(job.employer_name);\n  const description = normalizeMultilineText(job.job_description);\n  const applyUrl = normalizeText(job.job_apply_link);\n  const remote = job.job_is_remote === true;\n  const location = buildLocation(job, remote);\n  assertMandatoryFields({ title, company, location, description, apply_url: applyUrl });\n\n  const skills = uniqueStrings(job.job_required_skills);\n  const qualifications = uniqueStrings(job.job_highlights?.Qualifications);\n  const benefits = uniqueStrings([...toArray(job.job_benefits), ...toArray(job.job_highlights?.Benefits)]);\n\n  return {\n    job_id: `${title}|${company}`.toLowerCase(),\n    title, company, location, country: normalizeText(job.job_country),\n    remote,\n    hybrid: /\\bhybrid\\b/i.test([job.job_title, job.job_location, job.job_description].filter((value) => typeof value === 'string').join(' ')),\n    employment_type: normalizeEmploymentType(job.job_employment_type),\n    seniority: null,\n    salary: firstNumber(job.job_min_salary, job.job_max_salary),\n    currency: normalizeText(job.job_salary_currency),\n    description,\n    requirements: normalizeMultilineText(qualifications.join('\\n')) || normalizeText(skills.join(', ')),\n    benefits: normalizeMultilineText(benefits.join('\\n')),\n    technologies: skills, industry: null, keywords: skills, company_size: null,\n    posted_at: normalizePostedAt(job), apply_url: applyUrl, source: 'JSearch',\n    language: normalizeText(job.job_language) || 'en', raw_source: job,\n  };\n}\n\nreturn $input.all().flatMap((item) => item.json.data.map((job) => ({\n  json: normalizeJSearchJob(job),\n})));"
+      },
+      "id": "802b88c6-9376-460b-b7c2-31324b551882",
+      "name": "Normalize JSearch Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1520,
+        -192
       ]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Manual Trigger": {
+    "When clicking â€˜Execute workflowâ€™": {
       "main": [
         [
           {
-            "node": "Search JSearch",
+            "node": "Set Search Parameters",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Search JSearch": {
+    "Set Search Parameters": {
+      "main": [
+        [
+          {
+            "node": "JSearch IE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSearch IE": {
       "main": [
         [
           {
@@ -95,15 +166,22 @@
           }
         ]
       ]
+    },
+    "Validate JSearch Response": {
+      "main": [
+        [
+          {
+            "node": "Normalize JSearch Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "81278a5b-aa7c-4f0b-a3de-df8f045c1d79",
+  "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": false
-  },
-  "tags": []
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca43adeb41ae26ea3ad90daca7ff2197a840e64063c2e0a7b75f980fc577e1c1"
+  }
 }
