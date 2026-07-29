@@ -145,6 +145,20 @@
         -1280,
         -192
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Adds deterministic scores to each filtered canonical job.\n */\nfunction getCountryScore(country) {\n  if (typeof country !== 'string') return 0;\n\n  const scores = {\n    ireland: 20,\n    'united kingdom': 15,\n    remote: 10,\n  };\n\n  return scores[country.trim().toLowerCase()] || 0;\n}\n\nfunction scoreJob(job) {\n  let deterministicScore = 0;\n  const scoreBreakdown = {};\n\n  if (job?.remote === true) {\n    deterministicScore += 10;\n    scoreBreakdown.remote = 10;\n  }\n\n  if (job?.hybrid === true) {\n    deterministicScore += 5;\n    scoreBreakdown.hybrid = 5;\n  }\n\n  const countryScore = getCountryScore(job?.country);\n  if (countryScore > 0) {\n    deterministicScore += countryScore;\n    scoreBreakdown.country = countryScore;\n  }\n\n  return {\n    deterministic_score: deterministicScore,\n    score_breakdown: scoreBreakdown,\n  };\n}\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    ...scoreJob(item.json),\n  },\n}));"
+      },
+      "id": "f01752a0-3e7e-47a7-b146-3ec3f78b2789",
+      "name": "Score Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        -192
+      ]
     }
   ],
   "connections": {
@@ -197,6 +211,17 @@
         [
           {
             "node": "Filter Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Jobs": {
+      "main": [
+        [
+          {
+            "node": "Score Jobs",
             "type": "main",
             "index": 0
           }
