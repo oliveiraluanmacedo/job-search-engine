@@ -52,11 +52,19 @@ function checkSeniority(job) {
 }
 
 /**
- * Placeholder for the engineering-role rule.
+ * Rejects engineering roles outside the candidate's target profile.
  *
- * @returns {{passed: boolean, reason: null}} Passing placeholder result.
+ * @param {object} job - Canonical job object.
+ * @returns {{passed: boolean, reason: string|null}} Engineering rule result.
  */
-function checkEngineering() {
+function checkEngineering(job) {
+  const title = typeof job?.title === 'string' ? job.title : '';
+  const engineeringTerms = /\b(Software Engineer|Backend Engineer|Frontend Engineer|Full[ -]?Stack Engineer|DevOps|SRE|Site Reliability Engineer|Firmware|Embedded)\b/i;
+
+  if (engineeringTerms.test(title)) {
+    return { passed: false, reason: 'Engineering' };
+  }
+
   return { passed: true, reason: null };
 }
 
