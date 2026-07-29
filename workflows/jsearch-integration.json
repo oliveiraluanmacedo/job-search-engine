@@ -159,6 +159,52 @@
         -1040,
         -192
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const SCORE_THRESHOLD = 20;\n\nreturn $input.all().map((item) => {\n  const score = Number(item.json.deterministic_score);\n  const passedThreshold = Number.isFinite(score) && score >= SCORE_THRESHOLD;\n\n  return {\n    json: {\n      ...item.json,\n      passed_threshold: passedThreshold,\n      ...(passedThreshold ? {} : { rejection_reason: 'Low Score' }),\n    },\n  };\n});"
+      },
+      "id": "f8df4c21-5d66-4ce1-a89e-17d1c3fb7fe5",
+      "name": "Score Threshold",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "4647b4b2-c4f6-4e85-a4f0-e0ef96a6fd94",
+              "leftValue": "={{ $json.passed_threshold }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "01d7339c-9d2e-4359-bb5d-56a7054a350f",
+      "name": "Continue Above Threshold",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        -192
+      ]
     }
   ],
   "connections": {
@@ -222,6 +268,28 @@
         [
           {
             "node": "Score Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Jobs": {
+      "main": [
+        [
+          {
+            "node": "Score Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Threshold": {
+      "main": [
+        [
+          {
+            "node": "Continue Above Threshold",
             "type": "main",
             "index": 0
           }
