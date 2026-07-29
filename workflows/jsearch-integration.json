@@ -208,13 +208,34 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "/**\n * Placeholder for the Google Sheets duplicate lookup.\n * Replace this node with a Google Sheets lookup immediately after\n * Continue Above Threshold's true output. Search the tracking table's\n * job_id column using item.json.job_id and set _duplicate_lookup_found\n * to true when a matching row exists.\n */\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    _duplicate_lookup_found: false,\n  },\n}));"
+        "operation": "getRow",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "job_id",
+              "lookupValue": "={{ $json.job_id }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "c7a8fd77-153b-4ddd-8e57-8457f37390d8",
-      "name": "Google Sheets Lookup (Placeholder)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "Google Sheets Lookup",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "alwaysOutputData": true,
       "position": [
         -320,
         -192
@@ -231,7 +252,7 @@
           "conditions": [
             {
               "id": "fcd47bca-7830-416a-9c66-45cbf3919f26",
-              "leftValue": "={{ $json._duplicate_lookup_found }}",
+              "leftValue": "={{ !!$json.job_id }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -255,7 +276,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map((item) => {\n  const { _duplicate_lookup_found, ...job } = item.json;\n  return {\n    json: {\n      ...job,\n      duplicated: true,\n      rejection_reason: 'Duplicate Job',\n    },\n  };\n});"
+        "jsCode": "const originals = $('Continue Above Threshold').all();\n\nreturn $input.all().map((item, index) => ({\n  json: {\n    ...originals[index].json,\n    duplicated: true,\n    rejection_reason: 'Duplicate Job',\n  },\n}));"
       },
       "id": "1b828902-6ebe-45e0-b4a7-1f1b747967fc",
       "name": "Mark Duplicate Job",
@@ -269,7 +290,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map((item) => {\n  const { _duplicate_lookup_found, ...job } = item.json;\n  return {\n    json: {\n      ...job,\n      duplicated: false,\n    },\n  };\n});"
+        "jsCode": "const originals = $('Continue Above Threshold').all();\n\nreturn $input.all().map((item, index) => ({\n  json: {\n    ...originals[index].json,\n    duplicated: false,\n  },\n}));"
       },
       "id": "65b6e941-56fe-45b4-99b7-34dbe173a8dc",
       "name": "Mark Unique Job",
@@ -291,6 +312,54 @@
       "typeVersion": 2,
       "position": [
         400,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "processed_at": "={{ $now.toISO() }}",
+            "source": "JSearch",
+            "job_id": "={{ $json.job_id ?? '' }}",
+            "title": "={{ $json.title ?? '' }}",
+            "company": "={{ $json.company ?? '' }}",
+            "location": "={{ $json.location ?? '' }}",
+            "country": "={{ $json.country ?? '' }}",
+            "employment_type": "={{ $json.employment_type ?? '' }}",
+            "remote": "={{ $json.remote ?? '' }}",
+            "hybrid": "={{ $json.hybrid ?? '' }}",
+            "url": "={{ $json.apply_url ?? '' }}",
+            "deterministic_score": "={{ $json.deterministic_score ?? '' }}",
+            "ai_score": "={{ $json.ai_score ?? '' }}",
+            "decision": "={{ $json.decision ?? '' }}",
+            "reasoning": "={{ $json.reasoning ?? '' }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "215d3751-c366-4893-8050-2cd63ca7eb5e",
+      "name": "Google Sheets Append Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        640,
         -80
       ]
     }
@@ -388,14 +457,14 @@
       "main": [
         [
           {
-            "node": "Google Sheets Lookup (Placeholder)",
+            "node": "Google Sheets Lookup",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Sheets Lookup (Placeholder)": {
+    "Google Sheets Lookup": {
       "main": [
         [
           {
@@ -429,6 +498,17 @@
         [
           {
             "node": "AI Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Append Row",
             "type": "main",
             "index": 0
           }
