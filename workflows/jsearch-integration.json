@@ -131,6 +131,20 @@
         -1520,
         -192
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Runs the empty hard-filter infrastructure for each canonical job.\n * Rule logic is intentionally deferred to later stories.\n */\nfunction checkSeniority() {\n  return { passed: true, reason: null };\n}\n\nfunction checkEngineering() {\n  return { passed: true, reason: null };\n}\n\nfunction checkDomain() {\n  return { passed: true, reason: null };\n}\n\nfunction checkExperience() {\n  return { passed: true, reason: null };\n}\n\nfunction checkDescriptionQuality() {\n  return { passed: true, reason: null };\n}\n\nfunction checkRecruiter() {\n  return { passed: true, reason: null };\n}\n\nfunction filterJob(job) {\n  const results = [\n    checkSeniority(job),\n    checkEngineering(job),\n    checkDomain(job),\n    checkExperience(job),\n    checkDescriptionQuality(job),\n    checkRecruiter(job),\n  ];\n\n  const rejected = results.find((result) => !result.passed);\n\n  return rejected\n    ? { approved: false, rejection_reason: rejected.reason, triggered_rules: [] }\n    : { approved: true, rejection_reason: null, triggered_rules: [] };\n}\n\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    ...filterJob(item.json),\n  },\n}));"
+      },
+      "id": "94930be9-3861-40df-9c9c-3940af19fa3a",
+      "name": "Filter Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        -192
+      ]
     }
   ],
   "connections": {
@@ -172,6 +186,17 @@
         [
           {
             "node": "Normalize JSearch Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize JSearch Jobs": {
+      "main": [
+        [
+          {
+            "node": "Filter Jobs",
             "type": "main",
             "index": 0
           }
